@@ -1,29 +1,17 @@
-import { useEffect, useState } from 'react';
-import api from './services/api';
+import { useState } from 'react';
+import Login from './pages/Login';
+import Dashboard from './Dashboard'; // Assure-toi que le fichier src/Dashboard.jsx existe
 
 function App() {
-  const [citoyens, setCitoyens] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    // Récupération des données depuis le backend
-    api.get('/citoyens')
-      .then(res => setCitoyens(res.data))
-      .catch(err => console.error("Erreur API:", err));
-  }, []);
+  // Si l'agent n'est pas connecté, on affiche la page de Login
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
 
-  return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Portail National des Services Communaux</h1>
-      <h2>Liste des Citoyens Enregistrés</h2>
-      <ul>
-        {citoyens.map(c => (
-          <li key={c.id}>
-            <strong>{c.nom} {c.prenom}</strong> - Fokontany: {c.fokontany}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  // Si l'agent est connecté, on affiche le tableau de bord
+  return <Dashboard />;
 }
 
 export default App;
