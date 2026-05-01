@@ -3,19 +3,33 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import axios from 'axios';
 import './App.css';
 
-// --- COMPOSANT 1 : CONNEXION ADMIN ---
+// --- COMPOSANT 1 : CONNEXION ADMIN (ACTUALISÉ) ---
 const Login = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (credentials.username === "admin" && credentials.password === "fokontany2026") {
-      localStorage.setItem("isAuthenticated", "true");
-      navigate('/admin');
-    } else {
-      setError("Identifiants incorrects. Veuillez réessayer.");
+    setError('');
+
+    try {
+      // Appel au Backend pour vérifier les identifiants en base de données
+      const response = await axios.post('http://127.0.0.1:8000/login', {
+        username: credentials.username,
+        password: credentials.password
+      });
+
+      if (response.data.message === "Connexion réussie") {
+        localStorage.setItem("isAuthenticated", "true");
+        navigate('/admin');
+      }
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        setError("Identifiants incorrects. Veuillez réessayer.");
+      } else {
+        setError("Erreur de connexion au serveur. Vérifiez que le Backend est lancé.");
+      }
     }
   };
 
@@ -118,7 +132,7 @@ const PublicForm = () => {
   );
 };
 
-// --- COMPOSANT 3 : TABLEAU ADMIN (PROTÉGÉ + ACTIONS) ---
+// --- COMPOSANT 3 : TABLEAU ADMIN ---
 const AdminList = () => {
   const [citizens, setCitizens] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,45 +143,44 @@ const AdminList = () => {
     fetchCitizens();
   }, []);
 
-  const fetchCitizens = async () => {
-    try {
-      const res = await axios.get('http://127.0.0.1:8000/citizens/');
-      setCitizens(res.data);
-    } catch (err) {
-      console.error("Erreur de chargement");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-const deleteCitizen = async (id) => {
-  // Debug: l'utilisateur peut ajouter cette ligne pour voir l'ID dans la console F12
-  console.log("Tentative de suppression de l'ID :", id); 
-
-  if (window.confirm("Voulez-vous vraiment supprimer cette inscription ?")) {
-    try {
-      // Vérifiez que l'URL correspond bien à celle du backend
-      await axios.delete(`http://127.0.0.1:8000/citizens/${id}`);
-      
-      // Mise à jour de l'état local pour faire disparaître la ligne
-      setCitizens(citizens.filter(c => c.id !== id));
-    } catch (err) {
-      console.error("Erreur détaillée:", err.response);
-      alert("Erreur lors de la suppression. Vérifiez la console.");
-    }
+const fetchCitizens = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/citizens/');
+    console.log("Données reçues du backend :", res.data); // Ajoutez cette ligne
+    setCitizens(res.data);
+  } catch (err) {
+    console.error("Erreur de chargement", err);
+  } finally {
+    setLoading(false);
   }
 };
+
+  const deleteCitizen = async (id) => {
+    if (window.confirm("Voulez-vous vraiment supprimer cette inscription ?")) {
+      try {
+        await axios.delete(`http://127.0.0.1:8000/citizens/${id}`);
+        setCitizens(citizens.filter(c => c.id !== id));
+      } catch (err) {
+        alert("Erreur lors de la suppression.");
+      }
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     navigate('/login');
   };
 
-  const filteredCitizens = citizens.filter(c => 
-    c.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.address.toLowerCase().includes(searchTerm.toLowerCase())
+// Dans App.jsx, modifiez le filteredCitizens ainsi :
+const filteredCitizens = citizens.filter(c => {
+  const search = searchTerm.toLowerCase();
+  // On ajoute une sécurité avec "|| ''" pour éviter de chercher sur du "null"
+  return (
+    (c.last_name || '').toLowerCase().includes(search) ||
+    (c.first_name || '').toLowerCase().includes(search) ||
+    (c.address || '').toLowerCase().includes(search)
   );
+});
 
   return (
     <div className="page-container" style={{ padding: '40px' }}>
@@ -192,7 +205,6 @@ const deleteCitizen = async (id) => {
         <table className="admin-table" style={{ width: '100%', marginTop: '20px', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
-              <th style={{ padding: '15px' }}>ID</th>
               <th style={{ padding: '15px' }}>Nom</th>
               <th style={{ padding: '15px' }}>Prénom</th>
               <th style={{ padding: '15px' }}>Quartier</th>
@@ -202,7 +214,6 @@ const deleteCitizen = async (id) => {
           <tbody>
             {filteredCitizens.map(c => (
               <tr key={c.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '15px' }}>{c.id}</td>
                 <td style={{ padding: '15px' }}>{c.last_name}</td>
                 <td style={{ padding: '15px' }}>{c.first_name}</td>
                 <td style={{ padding: '15px' }}>{c.address}</td>
@@ -223,10 +234,10 @@ const deleteCitizen = async (id) => {
   );
 };
 
-// --- PROTECTION DES ROUTES ---
+// --- PROTECTION DES ROUTES (INVISIBILITÉ DU PANEL SANS AUTH) ---
 const PrivateRoute = ({ children }) => {
-  const auth = localStorage.getItem("isAuthenticated");
-  return auth === "true" ? children : <Navigate to="/login" />;
+  const auth = localStorage.getItem("isAuthenticated") === "true";
+  return auth ? children : <Navigate to="/login" replace />;
 };
 
 // --- ROUTEUR PRINCIPAL ---
@@ -244,6 +255,8 @@ function App() {
             </PrivateRoute>
           } 
         />
+        {/* Redirection automatique si la route n'existe pas */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

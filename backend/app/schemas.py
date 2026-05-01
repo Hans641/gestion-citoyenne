@@ -1,16 +1,18 @@
+# backend/app/schemas.py
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from uuid import UUID
 
-# Ce qu'on reçoit du Front-end lors de la création
-class CitizenCreate(BaseModel):
+class CitizenBase(BaseModel):
     first_name: str
     last_name: str
     address: str
-    cin: Optional[str] = None
+    cin: str | None = None
 
-# Ce qu'on renvoie au Front-end (avec l'UUID généré par la DB)
-class Citizen(CitizenCreate):
-    id: UUID  # Changement de int à UUID pour correspondre au modèle
+class CitizenCreate(CitizenBase):
+    pass
 
+class Citizen(CitizenBase):
+    id: UUID
+    
+    # CRITIQUE : Permet à FastAPI de lire les objets SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
