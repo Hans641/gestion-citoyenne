@@ -1,11 +1,11 @@
 # backend/app/models.py
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase
 import uuid
-import datetime
+from datetime import datetime, timezone
 
-# Cette syntaxe aide l'éditeur à comprendre "Base"
+# Classe de base pour SQLAlchemy
 class Base(DeclarativeBase):
     pass
 
@@ -19,6 +19,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
 class Citizen(Base):
+    """Table pour la gestion des citoyens de la commune (Dynamique - PostgreSQL)"""
     __tablename__ = "citizens"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -27,7 +28,10 @@ class Citizen(Base):
     address = Column(String, nullable=False)
     cin = Column(String, unique=True, nullable=True)
     
-    # Audit Logs pour la commune
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    # Audit Logs pour le suivi des inscriptions
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     is_deleted = Column(Boolean, default=False)
+
+# NOTE : La classe AdministrativePaper a été retirée car les tarifs sont 
+# désormais gérés directement dans views.py (LISTE_PAPIERS).

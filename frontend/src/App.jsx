@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import AdminDashboard from './pages/AdminDashboard'; // Import de la nouvelle interface
 import './App.css';
 
-// --- COMPOSANT 1 : CONNEXION ADMIN (ACTUALISÉ) ---
+// --- COMPOSANT 1 : CONNEXION ADMIN ---
 const Login = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
@@ -14,7 +15,6 @@ const Login = () => {
     setError('');
 
     try {
-      // Appel au Backend pour vérifier les identifiants en base de données
       const response = await axios.post('http://127.0.0.1:8000/login', {
         username: credentials.username,
         password: credentials.password
@@ -28,7 +28,7 @@ const Login = () => {
       if (err.response && err.response.status === 401) {
         setError("Identifiants incorrects. Veuillez réessayer.");
       } else {
-        setError("Erreur de connexion au serveur. Vérifiez que le Backend est lancé.");
+        setError("Erreur de connexion au serveur.");
       }
     }
   };
@@ -79,7 +79,7 @@ const PublicForm = () => {
       setStatus("Succès ! Votre inscription a été enregistrée.");
       setFormData({ first_name: '', last_name: '', address: '', cin: '' });
     } catch (err) {
-      setStatus("Erreur lors de l'envoi. Le serveur est-il allumé ?");
+      setStatus("Erreur lors de l'envoi.");
     }
   };
 
@@ -132,109 +132,7 @@ const PublicForm = () => {
   );
 };
 
-// --- COMPOSANT 3 : TABLEAU ADMIN ---
-const AdminList = () => {
-  const [citizens, setCitizens] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchCitizens();
-  }, []);
-
-const fetchCitizens = async () => {
-  try {
-    const res = await axios.get('http://127.0.0.1:8000/citizens/');
-    console.log("Données reçues du backend :", res.data); // Ajoutez cette ligne
-    setCitizens(res.data);
-  } catch (err) {
-    console.error("Erreur de chargement", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const deleteCitizen = async (id) => {
-    if (window.confirm("Voulez-vous vraiment supprimer cette inscription ?")) {
-      try {
-        await axios.delete(`http://127.0.0.1:8000/citizens/${id}`);
-        setCitizens(citizens.filter(c => c.id !== id));
-      } catch (err) {
-        alert("Erreur lors de la suppression.");
-      }
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    navigate('/login');
-  };
-
-// Dans App.jsx, modifiez le filteredCitizens ainsi :
-const filteredCitizens = citizens.filter(c => {
-  const search = searchTerm.toLowerCase();
-  // On ajoute une sécurité avec "|| ''" pour éviter de chercher sur du "null"
-  return (
-    (c.last_name || '').toLowerCase().includes(search) ||
-    (c.first_name || '').toLowerCase().includes(search) ||
-    (c.address || '').toLowerCase().includes(search)
-  );
-});
-
-  return (
-    <div className="page-container" style={{ padding: '40px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ color: '#0062ff' }}>Espace Administration</h1>
-        <button onClick={handleLogout} className="submit-btn" style={{ width: 'auto', padding: '10px 20px', background: '#ef4444' }}>Déconnexion</button>
-      </div>
-
-      <div className="input-group" style={{ marginTop: '20px', maxWidth: '400px' }}>
-        <input 
-          type="text" 
-          placeholder="Rechercher par nom, prénom ou quartier..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ padding: '10px' }}
-        />
-      </div>
-
-      {loading ? (
-        <p>Chargement des données...</p>
-      ) : (
-        <table className="admin-table" style={{ width: '100%', marginTop: '20px', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
-              <th style={{ padding: '15px' }}>Nom</th>
-              <th style={{ padding: '15px' }}>Prénom</th>
-              <th style={{ padding: '15px' }}>Quartier</th>
-              <th style={{ padding: '15px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCitizens.map(c => (
-              <tr key={c.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '15px' }}>{c.last_name}</td>
-                <td style={{ padding: '15px' }}>{c.first_name}</td>
-                <td style={{ padding: '15px' }}>{c.address}</td>
-                <td style={{ padding: '15px' }}>
-                  <button 
-                    onClick={() => deleteCitizen(c.id)} 
-                    style={{ color: '#ef4444', cursor: 'pointer', background: 'none', border: 'none', fontWeight: 'bold' }}
-                  >
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-};
-
-// --- PROTECTION DES ROUTES (INVISIBILITÉ DU PANEL SANS AUTH) ---
+// --- PROTECTION DES ROUTES ---
 const PrivateRoute = ({ children }) => {
   const auth = localStorage.getItem("isAuthenticated") === "true";
   return auth ? children : <Navigate to="/login" replace />;
@@ -251,11 +149,10 @@ function App() {
           path="/admin" 
           element={
             <PrivateRoute>
-              <AdminList />
+              <AdminDashboard /> 
             </PrivateRoute>
           } 
         />
-        {/* Redirection automatique si la route n'existe pas */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
