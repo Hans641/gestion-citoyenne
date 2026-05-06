@@ -83,7 +83,7 @@ export default function PublicPage({ onLogin }) {
           borderRadius: 99, padding: '6px 18px', marginBottom: 24,
           fontSize: '0.8rem', color: 'var(--emerald-400)', fontWeight: 700,
         }}>
-          🇲🇬 &nbsp; Ministère de l'Intérieur · Digitalisation 2024
+          🇲🇬 &nbsp; Ministère de l'Intérieur · Digitalisation
         </div>
         <h1 style={{
           fontFamily: 'Syne, sans-serif', fontSize: 'clamp(2.2rem, 5vw, 3.8rem)',
@@ -292,7 +292,7 @@ export default function PublicPage({ onLogin }) {
           <span>·</span>
           <span>🔒 Données chiffrées AES-256</span>
         </div>
-        <div>CommuneDigit © 2024 — Madagascar</div>
+        <div>CommuneDigit © — Madagascar</div>
       </footer>
     </div>
   );
