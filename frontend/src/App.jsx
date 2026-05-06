@@ -17,7 +17,15 @@ import DashboardLayout from './pages/DashboardLayout';
 export default function App() {
   const [user, setUser] = useState(null);   // null = non connecté
   const [view, setView] = useState('public'); // 'public' | 'login' | 'dashboard'
-  const [lang, setLang] = useState('fr');
+  const [lang, setLang] = useState('mg');   // Malagasy par défaut
+  const [theme, setTheme] = useState('dark'); // 'dark' | 'light'
+
+  // Apply theme to <html> so CSS [data-theme] selectors work everywhere
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   const login = (userData) => {
     setUser(userData);
@@ -30,7 +38,7 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
-      <AppContext.Provider value={{ lang, setLang }}>
+      <AppContext.Provider value={{ lang, setLang, theme, toggleTheme }}>
         {view === 'public'    && <PublicPage onLogin={() => setView('login')} />}
         {view === 'login'     && <LoginPage onBack={() => setView('public')} />}
         {view === 'dashboard' && user && <DashboardLayout />}

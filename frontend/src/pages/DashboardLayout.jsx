@@ -1,5 +1,37 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../App';
+import { useAuth, useApp } from '../App';
+
+// ── Traductions Malagasy ─────────────────────────────────────────
+const T = {
+  fr: {
+    principal: 'Principal', territoire: 'Territoire', administration: 'Administration', systeme: 'Système',
+    tableau_bord: 'Tableau de bord', citoyens: 'Citoyens', etat_civil: 'État Civil',
+    certificats: 'Certificats', paiements: 'Paiements', impressions: 'Impressions',
+    cartographie: 'Cartographie', alertes: 'Alertes', statistiques: 'Statistiques',
+    agents: 'Agents', audit: "Journal d'audit", assistant: 'Assistant IA', parametres: 'Paramètres',
+    recherche_placeholder: 'Rechercher citoyen, dossier, acte… (⌘K)',
+    synchronise: 'Synchronisé', notifs: 'Notifications', tout_lu: 'Tout marquer lu',
+    voir_notifs: 'Voir toutes les notifications →', deconnecter: 'Se déconnecter ↩',
+    portail: 'Portail Administration', aller: '↩ Aller',
+    footer_left: 'CommuneDigit v1.0.2 · FastAPI + PostgreSQL · AES-256 · SHA-256',
+    footer_right: 'Conformité : Loi 2014-038 · Convention de Malabo 🇲🇬',
+    mode_sombre: 'Mode sombre', mode_clair: 'Mode clair',
+  },
+  mg: {
+    principal: 'Lehibe', territoire: 'Faritanin-tany', administration: 'Fitantanana', systeme: 'Rafitra',
+    tableau_bord: 'Fikirakirana', citoyens: 'Olom-pirenena', etat_civil: 'Toe-piainana',
+    certificats: 'Taratasy', paiements: 'Fandoavana', impressions: 'Fiprintan-taratasy',
+    cartographie: 'Sarintany', alertes: 'Filazana', statistiques: 'Statistika',
+    agents: 'Mpiasam-panjakana', audit: 'Fitanana-kaonty', assistant: 'Mpanampy AI', parametres: 'Fanamboarana',
+    recherche_placeholder: 'Hikaroka olom-pirenena, rakitra, taratasy… (⌘K)',
+    synchronise: 'Voatomombana', notifs: 'Filazana', tout_lu: 'Amaky rehetra',
+    voir_notifs: 'Jereo ny filazana rehetra →', deconnecter: 'Hivoaka ↩',
+    portail: "Vavahadin'ny Fitantanana", aller: '↩ Asa',
+    footer_left: 'CommuneDigit v1.0.2 · FastAPI + PostgreSQL · AES-256 · SHA-256',
+    footer_right: 'Fanjakana : Lalàna 2014-038 · Fifanekena Malabo 🇲🇬',
+    mode_sombre: 'Alina', mode_clair: 'Andro',
+  },
+};
 
 // Pages
 import DashboardHome  from './DashboardHome';
@@ -17,27 +49,28 @@ import AuditLog       from './AuditLog';
 import Impressions    from './Impressions';
 
 // ── Role-based nav visibility ────────────────────────────────────
-const NAV = [
-  { section: 'Principal', items: [
-    { id: 'home',         icon: '🏠', label: 'Tableau de bord',   badge: null,  roles: ['all'] },
-    { id: 'citoyens',     icon: '👥', label: 'Citoyens',           badge: null,  roles: ['all'] },
-    { id: 'etatcivil',    icon: '📋', label: 'État Civil',         badge: '3',   roles: ['all'] },
-    { id: 'certificats',  icon: '📜', label: 'Certificats',        badge: null,  roles: ['all'] },
-    { id: 'paiements',    icon: '💳', label: 'Paiements',          badge: null,  roles: ['all'] },
-    { id: 'impressions',  icon: '🖨️', label: 'Impressions',       badge: null,  roles: ['all'] },
+// NAV uses translation keys — labels resolved at render time using T[lang]
+const NAV_DEF = [
+  { sectionKey: 'principal', items: [
+    { id: 'home',         icon: '🏠', labelKey: 'tableau_bord',  badge: null, roles: ['all'] },
+    { id: 'citoyens',     icon: '👥', labelKey: 'citoyens',       badge: null, roles: ['all'] },
+    { id: 'etatcivil',    icon: '📋', labelKey: 'etat_civil',     badge: '3',  roles: ['all'] },
+    { id: 'certificats',  icon: '📜', labelKey: 'certificats',    badge: null, roles: ['all'] },
+    { id: 'paiements',    icon: '💳', labelKey: 'paiements',      badge: null, roles: ['all'] },
+    { id: 'impressions',  icon: '🖨️', labelKey: 'impressions',   badge: null, roles: ['all'] },
   ]},
-  { section: 'Territoire', items: [
-    { id: 'cartographie', icon: '🗺️', label: 'Cartographie',     badge: null,  roles: ['all'] },
-    { id: 'alertes',      icon: '📡', label: 'Alertes',           badge: '2',   roles: ['all'] },
-    { id: 'statistiques', icon: '📊', label: 'Statistiques',      badge: null,  roles: ['all'] },
+  { sectionKey: 'territoire', items: [
+    { id: 'cartographie', icon: '🗺️', labelKey: 'cartographie',  badge: null, roles: ['all'] },
+    { id: 'alertes',      icon: '📡', labelKey: 'alertes',        badge: '2',  roles: ['all'] },
+    { id: 'statistiques', icon: '📊', labelKey: 'statistiques',   badge: null, roles: ['all'] },
   ]},
-  { section: 'Administration', items: [
-    { id: 'agents',       icon: '👔', label: 'Agents',            badge: null,  roles: ['Administrateur', 'Ministère MID'] },
-    { id: 'auditlog',     icon: '🔍', label: 'Journal d\'audit',  badge: '1',   roles: ['Administrateur', 'Ministère MID'] },
+  { sectionKey: 'administration', items: [
+    { id: 'agents',   icon: '👔', labelKey: 'agents', badge: null, roles: ['Administrateur', 'Ministère MID'] },
+    { id: 'auditlog', icon: '🔍', labelKey: 'audit',  badge: '1',  roles: ['Administrateur', 'Ministère MID'] },
   ]},
-  { section: 'Système', items: [
-    { id: 'chatbot',      icon: '🤖', label: 'Assistant IA',      badge: null,  roles: ['all'] },
-    { id: 'parametres',   icon: '⚙️', label: 'Paramètres',       badge: null,  roles: ['all'] },
+  { sectionKey: 'systeme', items: [
+    { id: 'chatbot',    icon: '🤖', labelKey: 'assistant',  badge: null, roles: ['all'] },
+    { id: 'parametres', icon: '⚙️', labelKey: 'parametres', badge: null, roles: ['all'] },
   ]},
 ];
 
@@ -65,25 +98,26 @@ const NOTIFICATIONS = [
   { id: 4, type: 'info',    icon: '💳', title: 'Nouveau paiement — 25 000 Ar',     time: 'hier',          read: true },
 ];
 
-function NotifPanel({ onClose }) {
+function NotifPanel({ onClose, lang }) {
+  const t = T[lang] || T.fr;
   const [notifs, setNotifs] = useState(NOTIFICATIONS);
   const markAll = () => setNotifs(n => n.map(x => ({ ...x, read: true })));
   return (
     <div style={{
       position: 'absolute', top: '100%', right: 0, marginTop: 8,
       width: 340, zIndex: 500,
-      background: 'rgba(10,20,40,0.95)',
+      background: 'var(--glass-bg-card, rgba(10,20,40,0.95))',
       backdropFilter: 'blur(24px)',
-      border: '1px solid rgba(255,255,255,0.15)',
+      border: '1px solid var(--glass-border)',
       borderRadius: 16,
       boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
       overflow: 'hidden',
       animation: 'slideUp 0.2s ease',
     }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '0.95rem' }}>Notifications</div>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '0.95rem' }}>{t.notifs}</div>
         <button onClick={markAll} style={{ background: 'none', border: 'none', color: 'var(--emerald-400)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>
-          Tout marquer lu
+          {t.tout_lu}
         </button>
       </div>
       <div style={{ maxHeight: 320, overflowY: 'auto' }}>
@@ -100,8 +134,8 @@ function NotifPanel({ onClose }) {
           >
             <span style={{ fontSize: '1.1rem', marginTop: 1 }}>{n.icon}</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.82rem', fontWeight: n.read ? 400 : 700, color: n.read ? 'rgba(255,255,255,0.6)' : '#fff', lineHeight: 1.4 }}>{n.title}</div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{n.time}</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: n.read ? 400 : 700, color: n.read ? 'var(--text-secondary)' : 'var(--text-primary)', lineHeight: 1.4 }}>{n.title}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 3 }}>{n.time}</div>
             </div>
             {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--emerald-400)', flexShrink: 0, marginTop: 6 }} />}
           </div>
@@ -109,7 +143,7 @@ function NotifPanel({ onClose }) {
       </div>
       <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--emerald-400)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600 }}>
-          Voir toutes les notifications →
+          {t.voir_notifs}
         </button>
       </div>
     </div>
@@ -168,25 +202,27 @@ function SearchOverlay({ query, onNavigate, onClose }) {
 // ── Main layout ──────────────────────────────────────────────────
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { lang, setLang, theme, toggleTheme } = useApp();
   const [active, setActive]         = useState('home');
   const [search, setSearch]         = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [lang, setLang]             = useState('fr');
   const [showNotifs, setShowNotifs] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const notifRef = useRef(null);
   const searchRef = useRef(null);
 
+  const t = T[lang] || T.fr;
   const PageComponent = PAGE_MAP[active] || DashboardHome;
   const unreadCount = NOTIFICATIONS.filter(n => !n.read).length;
 
-  // Filter nav by role
+  // Filter nav by role, resolving labels from translations
   const userRole = user?.role || '';
-  const visibleNav = NAV.map(section => ({
+  const visibleNav = NAV_DEF.map(section => ({
     ...section,
-    items: section.items.filter(item =>
-      item.roles.includes('all') || item.roles.includes(userRole)
-    ),
+    section: t[section.sectionKey] || section.sectionKey,
+    items: section.items
+      .filter(item => item.roles.includes('all') || item.roles.includes(userRole))
+      .map(item => ({ ...item, label: t[item.labelKey] || item.labelKey })),
   })).filter(s => s.items.length > 0);
 
   // Close dropdowns on outside click
@@ -225,7 +261,7 @@ export default function DashboardLayout() {
               fontWeight: 800, 
               fontSize: '1rem', 
               lineHeight: '1.1', // Resserre l'espace entre les lignes
-              color: '#fff'
+              color: 'var(--text-primary)'
             }}>
               CommuneDigit
             </div>
@@ -234,7 +270,7 @@ export default function DashboardLayout() {
               opacity: 0.5, 
               marginTop: '2px'
             }}>
-              Portail Administration
+              {t.portail}
             </div>
           </div>
         </div>
@@ -270,7 +306,7 @@ export default function DashboardLayout() {
             <div className="avatar avatar-sm" style={{ background: 'linear-gradient(135deg,#10b981,#14b8a6)' }}>{user?.avatar || '?'}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
-              <div className="user-role">Se déconnecter ↩</div>
+              <div className="user-role">{t.deconnecter}</div>
             </div>
           </div>
         </div>
@@ -302,7 +338,7 @@ export default function DashboardLayout() {
                 value={search}
                 onChange={e => { setSearch(e.target.value); setShowSearch(true); }}
                 onFocus={() => setShowSearch(true)}
-                placeholder="Rechercher citoyen, dossier, acte… (⌘K)"
+                placeholder={t.recherche_placeholder}
               />
               {search && (
                 <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.9rem', padding: 0 }}>✕</button>
@@ -317,9 +353,18 @@ export default function DashboardLayout() {
             {/* Sync */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: 'var(--emerald-400)', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', padding: '5px 12px', borderRadius: 99, whiteSpace: 'nowrap' }}>
               <span style={{ width: 6, height: 6, background: 'var(--emerald-400)', borderRadius: '50%', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-              <span style={{ display: 'none' }} className="sync-text">Synchronisé</span>
+              <span style={{ display: 'none' }} className="sync-text">{t.synchronise}</span>
               <span>✓</span>
             </div>
+
+            {/* Theme toggle */}
+            <button
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? t.mode_clair : t.mode_sombre}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
 
             {/* Lang */}
             <div style={{ display: 'flex', gap: 2 }}>
@@ -337,7 +382,7 @@ export default function DashboardLayout() {
                   </span>
                 )}
               </button>
-              {showNotifs && <NotifPanel onClose={() => setShowNotifs(false)} />}
+              {showNotifs && <NotifPanel onClose={() => setShowNotifs(false)} lang={lang} />}
             </div>
 
             {/* User menu */}
@@ -351,12 +396,12 @@ export default function DashboardLayout() {
         {/* ── BREADCRUMB TABS for quick nav ── */}
         <div style={{
           display: 'flex', gap: 6, padding: '8px 32px',
-          background: 'rgba(255,255,255,0.03)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--glass-bg)',
+          borderBottom: '1px solid var(--glass-border)',
           overflowX: 'auto',
         }}>
           {['home', 'citoyens', 'etatcivil', 'certificats', 'paiements', 'cartographie', 'alertes'].map(id => {
-            const item = NAV.flatMap(s => s.items).find(i => i.id === id);
+            const item = visibleNav.flatMap(s => s.items).find(i => i.id === id);
             if (!item) return null;
             return (
               <button key={id}
@@ -366,8 +411,8 @@ export default function DashboardLayout() {
                   borderRadius: 6,
                   fontSize: '0.72rem',
                   fontWeight: active === id ? 700 : 500,
-                  color: active === id ? '#fff' : 'rgba(255,255,255,0.4)',
-                  background: active === id ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color: active === id ? 'var(--text-primary)' : 'var(--text-muted)',
+                  background: active === id ? 'rgba(127,127,127,0.1)' : 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -388,9 +433,9 @@ export default function DashboardLayout() {
         </main>
 
         {/* Footer */}
-        <footer style={{ padding: '12px 32px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>
-          <span>CommuneDigit v1.0.2 · FastAPI + PostgreSQL · AES-256 · SHA-256</span>
-          <span>Conformité : Loi 2014-038 · Convention de Malabo 🇲🇬</span>
+        <footer style={{ padding: '12px 32px', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          <span>{t.footer_left}</span>
+          <span>{t.footer_right}</span>
         </footer>
       </div>
 
